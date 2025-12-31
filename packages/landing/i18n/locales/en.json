@@ -114,7 +114,8 @@
       "title": "Or run with Docker",
       "description": "For self-hosted deployment"
     },
-    "allReleases": "View all releases on GitHub"
+    "allReleases": "View all releases on GitHub",
+    "autoUpdateHint": "Since version 1.0.0-rc.6, the installers (Windows .exe, Linux AppImage) support automatic updates. Your database and files remain unchanged."
   },
   "testimonials": {
     "title": "What People Are Saying",

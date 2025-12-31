@@ -53,6 +53,9 @@ function getDownloadUrl(platform: 'windows' | 'linux' | 'mac'): string | null {
   const assets = latestRelease.value.assets
 
   if (platform === 'windows') {
+    // Prefer .exe installer for auto-updates, fallback to .zip
+    const exe = assets.find((a) => a.name.endsWith('.exe'))
+    if (exe) return exe.browser_download_url
     const zip = assets.find((a) => a.name.endsWith('.zip') && a.name.toLowerCase().includes('win'))
     return zip?.browser_download_url || null
   }
@@ -84,7 +87,11 @@ function getFileSize(platform: 'windows' | 'linux' | 'mac'): string | null {
   let asset = null
 
   if (platform === 'windows') {
-    asset = assets.find((a) => a.name.endsWith('.zip') && a.name.toLowerCase().includes('win'))
+    // Prefer .exe installer size, fallback to .zip
+    asset = assets.find((a) => a.name.endsWith('.exe'))
+    if (!asset) {
+      asset = assets.find((a) => a.name.endsWith('.zip') && a.name.toLowerCase().includes('win'))
+    }
   } else if (platform === 'linux') {
     asset = assets.find((a) => a.name.endsWith('.AppImage'))
   } else if (platform === 'mac') {
@@ -169,6 +176,23 @@ onMounted(() => {
             color="primary"
           />
         </div>
+
+        <!-- Auto-Update Info -->
+        <v-alert
+          v-motion
+          :initial="{ opacity: 0, y: 10 }"
+          :visible-once="{ opacity: 1, y: 0, transition: { delay: 500 } }"
+          type="info"
+          variant="tonal"
+          class="mt-6 mx-auto text-left"
+          style="max-width: 600px"
+          density="compact"
+        >
+          <template #prepend>
+            <v-icon>mdi-update</v-icon>
+          </template>
+          {{ t('download.autoUpdateHint') }}
+        </v-alert>
       </div>
 
       <!-- Download Cards -->
