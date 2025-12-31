@@ -19,12 +19,42 @@ export interface SaveFileResult {
   error?: string
 }
 
+// Auto-updater types
+export interface UpdateCheckResult {
+  updateAvailable: boolean
+  version?: string
+  releaseNotes?: string
+  isDevMode?: boolean
+  error?: string
+}
+
+export interface UpdateDownloadProgress {
+  percent: number
+  bytesPerSecond: number
+  transferred: number
+  total: number
+}
+
 export interface ElectronAPI {
   isElectron: boolean
   exportDatabase: () => Promise<{ success: boolean; filePath?: string; error?: string }>
   openUploadsFolder: () => Promise<{ success: boolean; error?: string }>
   getDataPaths: () => Promise<{ databasePath: string; uploadPath: string }>
   saveFileDialog: (options: SaveFileOptions) => Promise<SaveFileResult>
+  openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>
+
+  // Auto-updater APIs
+  checkForUpdates: () => Promise<UpdateCheckResult>
+  downloadUpdate: () => Promise<{ started: boolean; isDevMode?: boolean; error?: string }>
+  installUpdate: () => Promise<{ installed: boolean; isDevMode?: boolean }>
+
+  // Auto-updater event listeners
+  onUpdateAvailable: (callback: (data: { version: string; releaseNotes?: string }) => void) => void
+  onUpdateNotAvailable: (callback: () => void) => void
+  onUpdateDownloadProgress: (callback: (progress: UpdateDownloadProgress) => void) => void
+  onUpdateDownloaded: (callback: (data?: { version?: string }) => void) => void
+  onUpdateError: (callback: (error: { message: string }) => void) => void
+  removeUpdateListeners: () => void
 }
 
 // Extend Window interface with electronAPI
@@ -123,6 +153,19 @@ export function useElectron() {
     async getDataPaths(): Promise<{ databasePath: string; uploadPath: string } | null> {
       if (!electronAPI) return null
       return electronAPI.getDataPaths()
+    },
+
+    /**
+     * Open external URL in system browser
+     * Falls back to window.open if not in Electron
+     */
+    async openExternalUrl(url: string): Promise<{ success: boolean; error?: string }> {
+      if (electronAPI) {
+        return electronAPI.openExternalUrl(url)
+      } else {
+        window.open(url, '_blank')
+        return { success: true }
+      }
     },
   }
 }

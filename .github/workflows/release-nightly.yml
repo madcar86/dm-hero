@@ -1,0 +1,113 @@
+# Nightly/Test releases for auto-update testing
+# This workflow publishes to dm-hero-nightly repo
+name: Release Nightly
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.0.1)'
+        required: true
+        default: '0.0.1'
+  # Push trigger to register workflow (skips actual build)
+  push:
+    paths:
+      - '.github/workflows/release-nightly.yml'
+
+jobs:
+  # Skip job if triggered by push (only run on manual trigger)
+  check-trigger:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "Skipping - triggered by push, not manual dispatch"
+          fi
+
+
+  build-windows:
+    needs: check-trigger
+    if: needs.check-trigger.outputs.should_run == 'true'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies (root for monorepo)
+        run: pnpm install
+
+      - name: Set version
+        run: |
+          $pkg = Get-Content packages/app/package.json | ConvertFrom-Json
+          $pkg.version = "${{ github.event.inputs.version }}"
+          $pkg | ConvertTo-Json -Depth 100 | Set-Content packages/app/package.json
+        shell: pwsh
+
+      - name: Build Nuxt
+        run: pnpm --filter @dm-hero/app build
+
+      - name: Rebuild native modules for Electron
+        run: pnpm --filter @dm-hero/app electron:rebuild
+
+      - name: Build Electron & Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec electron-builder --win --publish always
+        working-directory: packages/app
+
+  build-linux:
+    needs: [check-trigger, build-windows]
+    if: needs.check-trigger.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies (root for monorepo)
+        run: pnpm install
+
+      - name: Set version
+        run: |
+          cd packages/app
+          node -e "const p=require('./package.json'); p.version='${{ github.event.inputs.version }}'; require('fs').writeFileSync('package.json', JSON.stringify(p, null, 2))"
+
+      - name: Build Nuxt
+        run: pnpm --filter @dm-hero/app build
+
+      - name: Rebuild native modules for Electron
+        run: pnpm --filter @dm-hero/app electron:rebuild
+
+      - name: Build Electron & Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec electron-builder --linux --publish always
+        working-directory: packages/app
