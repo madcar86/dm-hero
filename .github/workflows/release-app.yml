@@ -74,6 +74,7 @@ jobs:
           cache-from: type=gha,scope=amd64
           cache-to: type=gha,mode=max,scope=amd64
           platforms: linux/amd64
+          provenance: false
 
   build-docker-arm64:
     needs: check
@@ -106,6 +107,7 @@ jobs:
           cache-from: type=gha,scope=arm64
           cache-to: type=gha,mode=max,scope=arm64
           platforms: linux/arm64
+          provenance: false
 
   create-docker-manifest:
     needs: [check, build-docker-amd64, build-docker-arm64]
