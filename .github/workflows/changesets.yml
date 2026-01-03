@@ -35,8 +35,8 @@ jobs:
       - name: Create Release Pull Request
         uses: changesets/action@v1
         with:
-          title: 'chore(landing): version packages'
-          commit: 'chore(landing): version packages'
+          title: 'chore: version packages'
+          commit: 'chore: version packages'
           version: pnpm changeset version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
