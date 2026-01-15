@@ -1,5 +1,14 @@
 # @dm-hero/app
 
+## 1.0.2
+
+### Patch Changes
+
+- - Fix calendar weather generation validation - button now disabled with tooltip when calendar not configured
+  - Add calendar reset functionality with linked data warnings
+  - Add weather overwrite confirmation dialog
+  - Fix electron-builder artifact naming for auto-updater
+
 ## 1.0.1
 
 ### Patch Changes
