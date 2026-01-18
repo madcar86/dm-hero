@@ -66,6 +66,7 @@
             @edit="editNpc"
             @download="(npc: NPC) => downloadImage(`/uploads/${npc.image_url}`, npc.name)"
             @delete="deleteNpc"
+            @open-group="openGroupPreview"
           />
         </v-col>
       </v-row>
@@ -146,6 +147,14 @@
       />
     </ClientOnly>
 
+    <!-- Group Preview Dialog -->
+    <ClientOnly>
+      <GroupPreviewDialog
+        v-model="showGroupPreview"
+        :group-id="previewGroupId"
+      />
+    </ClientOnly>
+
     <!-- Floating Action Button -->
     <v-btn
       color="primary"
@@ -163,6 +172,7 @@ import NpcCard from '../../components/npcs/NpcCard.vue'
 import NpcViewDialog from '../../components/npcs/NpcViewDialog.vue'
 import NpcEditDialog from '../../components/npcs/NpcEditDialog.vue'
 import ImagePreviewDialog from '../../components/shared/ImagePreviewDialog.vue'
+import GroupPreviewDialog from '../../components/groups/GroupPreviewDialog.vue'
 
 const { locale } = useI18n()
 const router = useRouter()
@@ -175,6 +185,15 @@ const showImagePreview = ref(false)
 const previewImageUrl = ref('')
 const previewImageTitle = ref('')
 
+// Group Preview
+const showGroupPreview = ref(false)
+const previewGroupId = ref<number | null>(null)
+
+function openGroupPreview(groupId: number) {
+  previewGroupId.value = groupId
+  showGroupPreview.value = true
+}
+
 // Auto-imported stores
 const entitiesStore = useEntitiesStore()
 const campaignStore = useCampaignStore()
@@ -185,13 +204,14 @@ const activeCampaignId = computed(() => campaignStore.activeCampaignId)
 
 // Check if campaign is selected
 onMounted(async () => {
-  // Load entities for this campaign
-  await entitiesStore.fetchNPCs(activeCampaignId.value!)
+  // Load NPCs, races, and classes in PARALLEL for faster page load
+  // These are independent requests that don't depend on each other
+  await Promise.all([
+    entitiesStore.fetchNPCs(activeCampaignId.value!),
+    loadReferenceData(),
+  ])
 
-  // Load races and classes for view dialog
-  await loadReferenceData()
-
-  // Load counts for all NPCs via store (uses batch endpoint - 1 request instead of N)
+  // Load counts AFTER NPCs are loaded (needs NPCs in store to apply counts)
   await entitiesStore.loadAllNpcCounts(activeCampaignId.value!)
 })
 
