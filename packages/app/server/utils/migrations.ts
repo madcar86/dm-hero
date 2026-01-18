@@ -1988,7 +1988,7 @@ export const migrations: Migration[] = [
         { key: 'highelf', de: 'Hochelf', en: 'High Elf' },
         { key: 'eladrin', de: 'Eladrin', en: 'Eladrin' },
         { key: 'seaelf', de: 'Seeelf', en: 'Sea Elf' },
-        { key: 'shadarkai', de: 'Shadar-kai', en: 'Shadar-kai' },
+        { key: 'shadarkai', de: 'Shadar-Kai', en: 'Shadar-Kai' },
         // Dwarf subraces
         { key: 'mountaindwarf', de: 'Bergzwerg', en: 'Mountain Dwarf' },
         { key: 'hilldwarf', de: 'Hügelzwerg', en: 'Hill Dwarf' },
@@ -2233,6 +2233,19 @@ export const migrations: Migration[] = [
       db.exec('CREATE INDEX IF NOT EXISTS idx_pinboard_group_id ON pinboard(group_id)')
 
       console.log('✅ Migration 40: Group pinning support added')
+    },
+  },
+  {
+    version: 41,
+    name: 'fix_shadarkai_typo',
+    up: (db) => {
+      // Fix typo: "Shadar-kai" -> "Shadar-Kai" (Issue #204)
+      db.prepare(`
+        UPDATE races SET name_de = 'Shadar-Kai', name_en = 'Shadar-Kai'
+        WHERE name = 'shadarkai'
+      `).run()
+
+      console.log('✅ Migration 41: Fixed Shadar-Kai typo')
     },
   },
 ]
