@@ -24,7 +24,7 @@
         </v-list-item-title>
         <v-list-item-subtitle>
           <v-chip v-if="relation.relation_type" size="small" class="mr-1">
-            {{ $t(`factions.membershipTypes.${relation.relation_type}`, relation.relation_type) }}
+            {{ $t(`${i18nPrefix}.${relation.relation_type}`, relation.relation_type) }}
           </v-chip>
           <span v-if="relation.notes" class="text-caption">
             {{ relation.notes }}
@@ -63,7 +63,7 @@
           {{ $t('common.addFactionLink') }}
         </v-expansion-panel-title>
         <v-expansion-panel-text>
-          <v-select
+          <v-autocomplete
             v-model="localFactionId"
             :items="availableFactions"
             item-title="name"
@@ -72,7 +72,17 @@
             variant="outlined"
             clearable
             class="mb-3"
-          />
+          >
+            <template #prepend-item>
+              <v-list-item class="text-primary" @click="showQuickCreate = true">
+                <template #prepend>
+                  <v-icon>mdi-plus</v-icon>
+                </template>
+                <v-list-item-title>{{ $t('quickCreate.newFaction') }}</v-list-item-title>
+              </v-list-item>
+              <v-divider class="my-1" />
+            </template>
+          </v-autocomplete>
 
           <v-select
             v-model="localRelationType"
@@ -138,15 +148,23 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Quick Create Dialog -->
+    <SharedQuickCreateEntityDialog
+      v-model="showQuickCreate"
+      entity-type="Faction"
+      @created="handleQuickCreated"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { FACTION_MEMBERSHIP_TYPES } from '~~/types/faction'
-import { useTabDirtyState } from '~/composables/useDialogDirtyState'
 
 const { t } = useI18n()
 const entitiesStore = useEntitiesStore()
+const campaignStore = useCampaignStore()
+const snackbarStore = useSnackbarStore()
 
 // Dirty state tracking
 const { markDirty } = useTabDirtyState('factions', t('factions.title'))
@@ -163,9 +181,15 @@ interface FactionRelation {
 
 interface Props {
   entityId: number
+  // Optional: custom relation types and i18n prefix (for Location → Faction, etc.)
+  relationTypes?: readonly string[]
+  i18nPrefix?: string
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  relationTypes: () => FACTION_MEMBERSHIP_TYPES as unknown as string[],
+  i18nPrefix: 'factions.membershipTypes',
+})
 
 const emit = defineEmits<{
   changed: []
@@ -189,16 +213,32 @@ const editForm = ref({
   notes: '',
 })
 
+// Quick Create state
+const showQuickCreate = ref(false)
+
 // Track dirty state: form has unsaved selection or edit dialog is open
 const isDirty = computed(() => !!localFactionId.value || !!localRelationType.value || !!localNotes.value || showEditDialog.value)
 watch(isDirty, (dirty) => markDirty(dirty), { immediate: true })
 
 const relationTypeSuggestions = computed(() =>
-  FACTION_MEMBERSHIP_TYPES.map((type) => ({
+  props.relationTypes.map((type) => ({
     value: type,
-    title: t(`factions.membershipTypes.${type}`),
+    title: t(`${props.i18nPrefix}.${type}`),
   })).sort((a, b) => a.title.localeCompare(b.title)),
 )
+
+async function handleQuickCreated(newEntity: { id: number; name: string }) {
+  // Reload factions to include the new faction
+  const campaignId = campaignStore.activeCampaignId
+  if (campaignId) {
+    await entitiesStore.fetchFactions(campaignId, true)
+  }
+
+  // Pre-select the new faction in the autocomplete (user still needs to click "Link")
+  localFactionId.value = newEntity.id
+
+  snackbarStore.success(t('quickCreate.created', { name: newEntity.name }))
+}
 
 // Load factions on mount and when entityId changes
 watch(
