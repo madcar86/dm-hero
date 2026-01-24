@@ -78,7 +78,7 @@ export const usePlayerStore = defineStore('player', {
 
     async handleBirthdayEvent(
       playerId: number,
-      playerName: string,
+      _playerName: string,
       birthday: BirthdayDate | null,
       showInCalendar: boolean,
       eventTitle: string,
