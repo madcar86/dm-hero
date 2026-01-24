@@ -422,14 +422,10 @@ import EntityPlayersTab from '~/components/shared/EntityPlayersTab.vue'
 import EntityDocuments from '~/components/shared/EntityDocuments.vue'
 import EntityImageGallery from '~/components/shared/EntityImageGallery.vue'
 import EntityImageUpload from '~/components/shared/EntityImageUpload.vue'
-import ImagePreviewDialog from '~/components/shared/ImagePreviewDialog.vue'
-import { useImageDownload } from '~/composables/useImageDownload'
 import LocationSelectWithMap from '~/components/shared/LocationSelectWithMap.vue'
 import { useEntitiesStore } from '~/stores/entities'
 import { useCampaignStore } from '~/stores/campaign'
 import { useSnackbarStore } from '~/stores/snackbar'
-import { useDialogDirtyStateProvider } from '~/composables/useDialogDirtyState'
-import { useFactionCounts } from '~/composables/useFactionCounts'
 
 // ============================================================================
 // Props & Emits - SIMPLIFIED: only show and factionId needed!
@@ -437,6 +433,7 @@ import { useFactionCounts } from '~/composables/useFactionCounts'
 const props = defineProps<{
   show: boolean
   factionId?: number | null // null/undefined = create mode
+  initialTab?: string // Tab to open when dialog opens (default: 'details')
 }>()
 
 const emit = defineEmits<{
@@ -453,7 +450,6 @@ const entitiesStore = useEntitiesStore()
 const campaignStore = useCampaignStore()
 const snackbarStore = useSnackbarStore()
 const { downloadImage: downloadImageFile } = useImageDownload()
-const { setCounts: setGlobalCounts } = useFactionCounts()
 
 // Dirty state management for tabs
 const { hasDirtyTabs, dirtyTabLabels } = useDialogDirtyStateProvider()
@@ -674,7 +670,7 @@ watch(
 // ============================================================================
 async function loadData(factionId: number | null | undefined) {
   loading.value = true
-  activeTab.value = 'details'
+  activeTab.value = props.initialTab || 'details'
 
   try {
     // Load store data and check API key
@@ -762,19 +758,13 @@ async function loadFaction(factionId: number) {
 
 async function loadCounts(factionId: number) {
   try {
-    const data = await $fetch<{
-      members: number
-      items: number
-      locations: number
-      lore: number
-      players: number
-      documents: number
-      images: number
-      relations: number
-    }>(`/api/factions/${factionId}/counts`)
-    counts.value = data
-    // Also update global counts so FactionCard updates reactively
-    setGlobalCounts(factionId, data)
+    // Use store to load counts (updates both store and composable)
+    await entitiesStore.loadFactionCounts(factionId)
+    // Get updated counts from store for local display
+    const faction = entitiesStore.getFactionById(factionId)
+    if (faction?._counts) {
+      counts.value = faction._counts
+    }
   } catch (e) {
     console.error('[FactionEditDialog] Failed to load counts:', e)
   }
@@ -1233,6 +1223,8 @@ async function addFactionRelation(payload: { factionId: number; relationType: st
     })
     await loadRelations(faction.value.id)
     await loadCounts(faction.value.id)
+    // Also update the OTHER faction's counts (bidirectional relation)
+    entitiesStore.loadFactionCounts(payload.factionId)
   } catch (e) {
     console.error('[FactionEditDialog] Failed to add faction relation:', e)
   } finally {
@@ -1260,10 +1252,18 @@ async function updateFactionRelation(payload: { relationId: number; relationType
 async function removeFactionRelation(relationId: number) {
   if (!faction.value) return
 
+  // Find the other faction's ID BEFORE deleting
+  const relation = factionRelations.value.find((r) => r.id === relationId)
+  const otherFactionId = relation?.related_faction_id
+
   try {
     await $fetch(`/api/entity-relations/${relationId}`, { method: 'DELETE' })
     await loadRelations(faction.value.id)
     await loadCounts(faction.value.id)
+    // Also update the OTHER faction's counts (bidirectional relation)
+    if (otherFactionId) {
+      entitiesStore.loadFactionCounts(otherFactionId)
+    }
   } catch (e) {
     console.error('[FactionEditDialog] Failed to remove faction relation:', e)
   }
