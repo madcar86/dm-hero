@@ -82,24 +82,19 @@ jobs:
           ls -la .output/server/node_modules/@img/ || echo "No @img folder"
 
       # Code Signing (only when enabled AND secrets are available)
-      - name: Import Code Signing Certificate
+      - name: Setup Code Signing
         if: inputs.sign
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
-          if [ -z "$APPLE_CERTIFICATE" ]; then
+          if [ -z "$CSC_LINK" ]; then
             echo "::warning::APPLE_CERTIFICATE secret not set, skipping signing"
             exit 0
           fi
-          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
           echo "SIGNING_ENABLED=true" >> $GITHUB_ENV
+          echo "CSC_LINK=$CSC_LINK" >> $GITHUB_ENV
+          echo "CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD" >> $GITHUB_ENV
 
       - name: Rebuild native modules for Electron (${{ matrix.arch }})
         run: |
@@ -120,10 +115,11 @@ jobs:
         if: inputs.sign && env.SIGNING_ENABLED == 'true'
         run: |
           cd packages/app
-          DEBUG=electron-builder,electron-notarize* pnpm electron-builder --mac --${{ matrix.arch }} --publish never
+          pnpm electron-builder --mac --${{ matrix.arch }} --publish never
         env:
+          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
