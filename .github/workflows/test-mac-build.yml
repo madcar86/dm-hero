@@ -58,6 +58,29 @@ jobs:
         run: pnpm build
         working-directory: packages/app
 
+      - name: Copy sharp native binaries to .output
+        run: |
+          cd packages/app
+          # Find and copy @img/sharp-* packages (platform-specific binaries)
+          mkdir -p .output/server/node_modules/@img
+
+          # Find sharp darwin binaries in pnpm store
+          for pkg in sharp-darwin-arm64 sharp-darwin-x64 sharp-libvips-darwin-arm64 sharp-libvips-darwin-x64; do
+            src=$(find ../../node_modules/.pnpm -type d -name "$pkg" -path "*/@img/$pkg" 2>/dev/null | head -1)
+            if [ -n "$src" ] && [ -d "$src" ]; then
+              echo "Copying $pkg from $src"
+              cp -r "$src" .output/server/node_modules/@img/
+            fi
+          done
+
+          # Also check local node_modules
+          if [ -d "node_modules/@img" ]; then
+            cp -r node_modules/@img/* .output/server/node_modules/@img/ 2>/dev/null || true
+          fi
+
+          echo "=== @img contents ==="
+          ls -la .output/server/node_modules/@img/ || echo "No @img folder"
+
       # Code Signing (only when enabled AND secrets are available)
       - name: Import Code Signing Certificate
         if: inputs.sign

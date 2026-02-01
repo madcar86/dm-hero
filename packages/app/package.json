@@ -93,20 +93,6 @@
         "filter": [
           "**/*"
         ]
-      },
-      {
-        "from": "node_modules/sharp",
-        "to": ".output/server/node_modules/sharp",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "node_modules/@img",
-        "to": ".output/server/node_modules/@img",
-        "filter": [
-          "**/*"
-        ]
       }
     ],
     "asar": true,
