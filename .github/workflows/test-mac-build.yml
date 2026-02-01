@@ -15,7 +15,7 @@ on:
       sign:
         description: 'Code Signing (requires secrets)'
         required: true
-        default: false
+        default: true
         type: boolean
 
 jobs:
@@ -112,7 +112,7 @@ jobs:
         if: ${{ !inputs.sign || env.SIGNING_ENABLED != 'true' }}
         run: |
           cd packages/app
-          pnpm electron-builder --mac --${{ matrix.arch }} --publish never --config.mac.identity=null
+          pnpm electron-builder --mac --${{ matrix.arch }} --publish never --config.mac.identity=null --config.mac.hardenedRuntime=false
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
