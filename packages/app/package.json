@@ -63,7 +63,8 @@
       "buildResources": "electron/icons"
     },
     "files": [
-      "electron/**/*"
+      "electron/**/*",
+      "!node_modules"
     ],
     "extraResources": [
       {
