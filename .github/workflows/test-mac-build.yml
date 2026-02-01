@@ -120,7 +120,7 @@ jobs:
         if: inputs.sign && env.SIGNING_ENABLED == 'true'
         run: |
           cd packages/app
-          pnpm electron-builder --mac --${{ matrix.arch }} --publish never
+          DEBUG=electron-builder,electron-notarize* pnpm electron-builder --mac --${{ matrix.arch }} --publish never
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
