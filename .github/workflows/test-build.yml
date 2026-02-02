@@ -123,12 +123,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: ${{
-          (inputs.platform == 'macos-both' || inputs.platform == 'all') && fromJSON('["x64", "arm64"]') ||
-          inputs.platform == 'macos-x64' && fromJSON('["x64"]') ||
-          inputs.platform == 'macos-arm64' && fromJSON('["arm64"]') ||
-          fromJSON('["arm64"]')
-        }}
+        arch: ${{ (inputs.platform == 'macos-both' || inputs.platform == 'all') && fromJSON('["x64", "arm64"]') || inputs.platform == 'macos-x64' && fromJSON('["x64"]') || fromJSON('["arm64"]') }}
 
     steps:
       - name: Checkout repository
