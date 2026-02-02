@@ -1,0 +1,216 @@
+name: Test Build (All Platforms)
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - windows
+          - linux
+          - macos-x64
+          - macos-arm64
+          - macos-both
+      sign_macos:
+        description: 'Sign macOS builds (requires secrets)'
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  # ============================================================================
+  # WINDOWS BUILD (identical to release-app.yml)
+  # ============================================================================
+  build-electron-windows:
+    if: inputs.platform == 'all' || inputs.platform == 'windows'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Nuxt
+        run: pnpm --filter @dm-hero/app build
+
+      - name: Rebuild better-sqlite3 for Electron
+        run: pnpm --filter @dm-hero/app electron:rebuild
+
+      - name: Build Electron app
+        working-directory: packages/app
+        run: pnpm exec electron-builder --win --publish never
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dm-hero-windows-test
+          path: |
+            packages/app/dist-electron/*.zip
+            packages/app/dist-electron/*.exe
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ============================================================================
+  # LINUX BUILD (identical to release-app.yml)
+  # ============================================================================
+  build-electron-linux:
+    if: inputs.platform == 'all' || inputs.platform == 'linux'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Nuxt
+        run: pnpm --filter @dm-hero/app build
+
+      - name: Rebuild better-sqlite3 for Electron
+        run: pnpm --filter @dm-hero/app electron:rebuild
+
+      - name: Build Electron app
+        working-directory: packages/app
+        run: pnpm exec electron-builder --linux --publish never
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dm-hero-linux-test
+          path: packages/app/dist-electron/*.AppImage
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ============================================================================
+  # MACOS BUILD (new - will be added to release-app.yml after testing)
+  # ============================================================================
+  build-electron-macos:
+    if: inputs.platform == 'all' || inputs.platform == 'macos-x64' || inputs.platform == 'macos-arm64' || inputs.platform == 'macos-both'
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{
+          (inputs.platform == 'macos-both' || inputs.platform == 'all') && fromJSON('["x64", "arm64"]') ||
+          inputs.platform == 'macos-x64' && fromJSON('["x64"]') ||
+          inputs.platform == 'macos-arm64' && fromJSON('["arm64"]') ||
+          fromJSON('["arm64"]')
+        }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Nuxt
+        run: pnpm --filter @dm-hero/app build
+
+      - name: Copy sharp native binaries to .output
+        run: |
+          cd packages/app
+          mkdir -p .output/server/node_modules/@img
+
+          for pkg in sharp-darwin-arm64 sharp-darwin-x64 sharp-libvips-darwin-arm64 sharp-libvips-darwin-x64; do
+            src=$(find ../../node_modules/.pnpm -type d -name "$pkg" -path "*/@img/$pkg" 2>/dev/null | head -1)
+            if [ -n "$src" ] && [ -d "$src" ]; then
+              echo "Copying $pkg from $src"
+              cp -r "$src" .output/server/node_modules/@img/
+            fi
+          done
+
+          if [ -d "node_modules/@img" ]; then
+            cp -r node_modules/@img/* .output/server/node_modules/@img/ 2>/dev/null || true
+          fi
+
+          echo "=== @img contents ==="
+          ls -la .output/server/node_modules/@img/ || echo "No @img folder"
+
+      - name: Setup Code Signing
+        if: inputs.sign_macos
+        env:
+          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -z "$CSC_LINK" ]; then
+            echo "::warning::APPLE_CERTIFICATE secret not set, skipping signing"
+            exit 0
+          fi
+          echo "SIGNING_ENABLED=true" >> $GITHUB_ENV
+
+      - name: Rebuild better-sqlite3 for Electron (${{ matrix.arch }})
+        run: |
+          cd packages/app
+          npm_config_arch=${{ matrix.arch }} node scripts/electron-rebuild.js
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+
+      - name: Build Electron app (Unsigned)
+        if: ${{ !inputs.sign_macos || env.SIGNING_ENABLED != 'true' }}
+        working-directory: packages/app
+        run: pnpm exec electron-builder --mac --${{ matrix.arch }} --publish never --config.mac.identity=null --config.mac.hardenedRuntime=false
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Build Electron app (Signed)
+        if: inputs.sign_macos && env.SIGNING_ENABLED == 'true'
+        working-directory: packages/app
+        run: pnpm exec electron-builder --mac --${{ matrix.arch }} --publish never
+        env:
+          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dm-hero-macos-${{ matrix.arch }}-test
+          path: packages/app/dist-electron/*.dmg
+          retention-days: 7
+          if-no-files-found: warn

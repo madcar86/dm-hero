@@ -1,4 +1,4 @@
-import { app, BrowserWindow, utilityProcess, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, utilityProcess, ipcMain, dialog, shell, Menu } from 'electron'
 import pkg from 'electron-updater'
 import path from 'path'
 import { existsSync, mkdirSync, copyFileSync, writeFileSync, appendFileSync } from 'fs'
@@ -215,6 +215,7 @@ function createWindow() {
   const windowOptions = {
     width: 1400,
     height: 900,
+    title: 'DM Hero',
     backgroundColor: currentTheme.background,
     show: false,
     webPreferences: {
@@ -222,6 +223,50 @@ function createWindow() {
       nodeIntegration: false,
       preload: path.join(__dirname, 'preload.js'),
     },
+  }
+
+  // Set up macOS menu (minimal: App, Edit, Help)
+  if (process.platform === 'darwin') {
+    const template = [
+      {
+        label: app.name,
+        submenu: [
+          { role: 'about' },
+          { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideOthers' },
+          { role: 'unhide' },
+          { type: 'separator' },
+          { role: 'quit' },
+        ],
+      },
+      {
+        label: 'Edit',
+        submenu: [
+          { role: 'undo' },
+          { role: 'redo' },
+          { type: 'separator' },
+          { role: 'cut' },
+          { role: 'copy' },
+          { role: 'paste' },
+          { role: 'selectAll' },
+        ],
+      },
+      {
+        label: 'Help',
+        submenu: [
+          {
+            label: 'Documentation',
+            click: () => shell.openExternal('https://dm-hero.com/docs'),
+          },
+          {
+            label: 'Report Issue',
+            click: () => shell.openExternal('https://github.com/Flo0806/dm-hero/issues'),
+          },
+        ],
+      },
+    ]
+    Menu.setApplicationMenu(Menu.buildFromTemplate(template))
   }
 
   if (isWindows) {
