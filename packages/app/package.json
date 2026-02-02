@@ -64,7 +64,7 @@
     },
     "files": [
       "electron/**/*",
-      "!node_modules"
+      "node_modules/electron-updater/**/*"
     ],
     "extraResources": [
       {
@@ -118,15 +118,7 @@
       "category": "Utility"
     },
     "mac": {
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ],
+      "target": "dmg",
       "category": "public.app-category.games",
       "icon": "electron/icons/icon.icns",
       "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
