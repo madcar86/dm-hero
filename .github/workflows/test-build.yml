@@ -156,11 +156,11 @@ jobs:
             npm pack @img/sharp-darwin-x64 --pack-destination /tmp
             npm pack @img/sharp-libvips-darwin-x64 --pack-destination /tmp
 
-            # Extract directly to .output
+            # Extract directly to .output (npm pack creates img-<name>-<version>.tgz)
             mkdir -p .output/server/node_modules/@img/sharp-darwin-x64
             mkdir -p .output/server/node_modules/@img/sharp-libvips-darwin-x64
-            tar -xzf /tmp/sharp-darwin-x64-*.tgz -C .output/server/node_modules/@img/sharp-darwin-x64 --strip-components=1
-            tar -xzf /tmp/sharp-libvips-darwin-x64-*.tgz -C .output/server/node_modules/@img/sharp-libvips-darwin-x64 --strip-components=1
+            tar -xzf /tmp/img-sharp-darwin-x64-*.tgz -C .output/server/node_modules/@img/sharp-darwin-x64 --strip-components=1
+            tar -xzf /tmp/img-sharp-libvips-darwin-x64-*.tgz -C .output/server/node_modules/@img/sharp-libvips-darwin-x64 --strip-components=1
           else
             echo "=== Native arm64 build ==="
             # For arm64, packages are already installed by pnpm - just copy them
