@@ -145,22 +145,44 @@ jobs:
       - name: Build Nuxt
         run: pnpm --filter @dm-hero/app build
 
+      - name: Install sharp for target architecture (${{ matrix.arch }})
+        run: |
+          cd packages/app
+          # Install the correct sharp binaries for target architecture
+          if [ "${{ matrix.arch }}" = "x64" ]; then
+            echo "Installing sharp binaries for x64..."
+            pnpm add @img/sharp-darwin-x64 @img/sharp-libvips-darwin-x64 --save-optional
+          else
+            echo "Installing sharp binaries for arm64..."
+            pnpm add @img/sharp-darwin-arm64 @img/sharp-libvips-darwin-arm64 --save-optional
+          fi
+
       - name: Copy sharp native binaries to .output
         run: |
           cd packages/app
           mkdir -p .output/server/node_modules/@img
 
-          for pkg in sharp-darwin-arm64 sharp-darwin-x64 sharp-libvips-darwin-arm64 sharp-libvips-darwin-x64; do
-            src=$(find ../../node_modules/.pnpm -type d -name "$pkg" -path "*/@img/$pkg" 2>/dev/null | head -1)
-            if [ -n "$src" ] && [ -d "$src" ]; then
-              echo "Copying $pkg from $src"
-              cp -r "$src" .output/server/node_modules/@img/
+          # Copy the architecture-specific sharp binaries
+          if [ "${{ matrix.arch }}" = "x64" ]; then
+            PKGS="sharp-darwin-x64 sharp-libvips-darwin-x64"
+          else
+            PKGS="sharp-darwin-arm64 sharp-libvips-darwin-arm64"
+          fi
+
+          for pkg in $PKGS; do
+            # Check in local node_modules first
+            if [ -d "node_modules/@img/$pkg" ]; then
+              echo "Copying $pkg from node_modules/@img/"
+              cp -r "node_modules/@img/$pkg" .output/server/node_modules/@img/
+            else
+              # Fallback to pnpm store
+              src=$(find ../../node_modules/.pnpm -type d -name "$pkg" -path "*/@img/$pkg" 2>/dev/null | head -1)
+              if [ -n "$src" ] && [ -d "$src" ]; then
+                echo "Copying $pkg from $src"
+                cp -r "$src" .output/server/node_modules/@img/
+              fi
             fi
           done
-
-          if [ -d "node_modules/@img" ]; then
-            cp -r node_modules/@img/* .output/server/node_modules/@img/ 2>/dev/null || true
-          fi
 
           echo "=== @img contents ==="
           ls -la .output/server/node_modules/@img/ || echo "No @img folder"
