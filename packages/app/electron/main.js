@@ -229,7 +229,7 @@ function createWindow() {
   if (process.platform === 'darwin') {
     const template = [
       {
-        label: app.name,
+        label: 'DM Hero',
         submenu: [
           { role: 'about' },
           { type: 'separator' },
