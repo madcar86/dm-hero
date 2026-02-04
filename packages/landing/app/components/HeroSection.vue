@@ -146,7 +146,7 @@ onMounted(() => {
             <v-row justify="center" class="hero-stats">
               <v-col cols="6" sm="3">
                 <div class="stat-item">
-                  <div class="stat-number gradient-text">7+</div>
+                  <div class="stat-number gradient-text">8+</div>
                   <div class="stat-label">{{ t('hero.stats.entities') }}</div>
                 </div>
               </v-col>

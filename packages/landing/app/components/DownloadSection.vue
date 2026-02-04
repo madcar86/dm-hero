@@ -47,7 +47,7 @@ async function fetchLatestRelease() {
 }
 
 // Get download URL for specific platform
-function getDownloadUrl(platform: 'windows' | 'linux' | 'mac'): string | null {
+function getDownloadUrl(platform: 'windows' | 'linux' | 'mac-arm64' | 'mac-x64'): string | null {
   if (!latestRelease.value) return null
 
   const assets = latestRelease.value.assets
@@ -65,8 +65,13 @@ function getDownloadUrl(platform: 'windows' | 'linux' | 'mac'): string | null {
     return appImage?.browser_download_url || null
   }
 
-  if (platform === 'mac') {
-    const dmg = assets.find((a) => a.name.endsWith('.dmg'))
+  if (platform === 'mac-arm64') {
+    const dmg = assets.find((a) => a.name.endsWith('.dmg') && a.name.includes('arm64'))
+    return dmg?.browser_download_url || null
+  }
+
+  if (platform === 'mac-x64') {
+    const dmg = assets.find((a) => a.name.endsWith('.dmg') && a.name.includes('x64'))
     return dmg?.browser_download_url || null
   }
 
@@ -80,7 +85,7 @@ function formatSize(bytes: number): string {
 }
 
 // Get file size for platform
-function getFileSize(platform: 'windows' | 'linux' | 'mac'): string | null {
+function getFileSize(platform: 'windows' | 'linux' | 'mac-arm64' | 'mac-x64'): string | null {
   if (!latestRelease.value) return null
 
   const assets = latestRelease.value.assets
@@ -94,8 +99,10 @@ function getFileSize(platform: 'windows' | 'linux' | 'mac'): string | null {
     }
   } else if (platform === 'linux') {
     asset = assets.find((a) => a.name.endsWith('.AppImage'))
-  } else if (platform === 'mac') {
-    asset = assets.find((a) => a.name.endsWith('.dmg'))
+  } else if (platform === 'mac-arm64') {
+    asset = assets.find((a) => a.name.endsWith('.dmg') && a.name.includes('arm64'))
+  } else if (platform === 'mac-x64') {
+    asset = assets.find((a) => a.name.endsWith('.dmg') && a.name.includes('x64'))
   }
 
   return asset ? formatSize(asset.size) : null
@@ -106,16 +113,19 @@ const platforms = [
     key: 'windows',
     icon: 'mdi-microsoft-windows',
     available: true,
+    split: false,
   },
   {
     key: 'mac',
     icon: 'mdi-apple',
-    available: false, // Coming soon
+    available: true,
+    split: true, // Split button for arm64/x64
   },
   {
     key: 'linux',
     icon: 'mdi-linux',
     available: true,
+    split: false,
   },
 ]
 
@@ -177,21 +187,36 @@ onMounted(() => {
           />
         </div>
 
-        <!-- Auto-Update Info -->
+        <!-- Discord Info -->
         <v-alert
           v-motion
           :initial="{ opacity: 0, y: 10 }"
           :visible-once="{ opacity: 1, y: 0, transition: { delay: 500 } }"
-          type="info"
+          color="#5865F2"
           variant="tonal"
           class="mt-6 mx-auto text-left"
           style="max-width: 600px"
           density="compact"
         >
           <template #prepend>
-            <v-icon>mdi-update</v-icon>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09c-.01-.02-.04-.03-.07-.03c-1.5.26-2.93.71-4.27 1.33c-.01 0-.02.01-.03.02c-2.72 4.07-3.47 8.03-3.1 11.95c0 .02.01.04.03.05c1.8 1.32 3.53 2.12 5.24 2.65c.03.01.06 0 .07-.02c.4-.55.76-1.13 1.07-1.74c.02-.04 0-.08-.04-.09c-.57-.22-1.11-.48-1.64-.78c-.04-.02-.04-.08-.01-.11c.11-.08.22-.17.33-.25c.02-.02.05-.02.07-.01c3.44 1.57 7.15 1.57 10.55 0c.02-.01.05-.01.07.01c.11.09.22.17.33.26c.04.03.04.09-.01.11c-.52.31-1.07.56-1.64.78c-.04.01-.05.06-.04.09c.32.61.68 1.19 1.07 1.74c.03.01.06.02.09.01c1.72-.53 3.45-1.33 5.25-2.65c.02-.01.03-.03.03-.05c.44-4.53-.73-8.46-3.1-11.95c-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.83 2.12-1.89 2.12z"/>
+            </svg>
           </template>
-          {{ t('download.autoUpdateHint') }}
+          <span>{{ t('download.discordHint') }}</span>
+          <v-btn
+            href="https://discord.gg/66JKJQEcSx"
+            target="_blank"
+            size="small"
+            variant="flat"
+            style="background-color: #5865F2; color: white;"
+            class="ml-0 mt-2"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="mr-1">
+              <path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09c-.01-.02-.04-.03-.07-.03c-1.5.26-2.93.71-4.27 1.33c-.01 0-.02.01-.03.02c-2.72 4.07-3.47 8.03-3.1 11.95c0 .02.01.04.03.05c1.8 1.32 3.53 2.12 5.24 2.65c.03.01.06 0 .07-.02c.4-.55.76-1.13 1.07-1.74c.02-.04 0-.08-.04-.09c-.57-.22-1.11-.48-1.64-.78c-.04-.02-.04-.08-.01-.11c.11-.08.22-.17.33-.25c.02-.02.05-.02.07-.01c3.44 1.57 7.15 1.57 10.55 0c.02-.01.05-.01.07.01c.11.09.22.17.33.26c.04.03.04.09-.01.11c-.52.31-1.07.56-1.64.78c-.04.01-.05.06-.04.09c.32.61.68 1.19 1.07 1.74c.03.01.06.02.09.01c1.72-.53 3.45-1.33 5.25-2.65c.02-.01.03-.03.03-.05c.44-4.53-.73-8.46-3.1-11.95c-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.83 2.12-1.89 2.12z"/>
+            </svg>
+            Discord
+          </v-btn>
         </v-alert>
       </div>
 
@@ -227,16 +252,69 @@ onMounted(() => {
                 <v-chip size="x-small" color="primary" variant="outlined" class="mt-1">
                   {{ latestRelease.tag_name }}
                 </v-chip>
-                <span v-if="getFileSize(platform.key as 'windows' | 'linux' | 'mac')" class="text-caption ml-2">
-                  {{ getFileSize(platform.key as 'windows' | 'linux' | 'mac') }}
+                <span v-if="!platform.split && getFileSize(platform.key as 'windows' | 'linux' | 'mac-arm64' | 'mac-x64')" class="text-caption ml-2">
+                  {{ getFileSize(platform.key as 'windows' | 'linux' | 'mac-arm64' | 'mac-x64') }}
                 </span>
               </template>
             </p>
 
+            <!-- Split button for Mac (arm64 / x64) -->
+            <div v-if="platform.available && platform.split" class="mac-split-btn">
+              <v-row dense>
+                <v-col cols="6">
+                  <v-tooltip location="bottom">
+                    <template #activator="{ props: tooltipProps }">
+                      <v-btn
+                        v-bind="tooltipProps"
+                        :href="getDownloadUrl('mac-arm64') || '#'"
+                        :disabled="!getDownloadUrl('mac-arm64') && !loading"
+                        :loading="loading"
+                        color="primary"
+                        size="large"
+                        class="download-btn"
+                        block
+                      >
+                        <v-icon start size="small">mdi-download</v-icon>
+                        Apple Silicon
+                      </v-btn>
+                    </template>
+                    <span>{{ t('download.platforms.mac.tooltipArm64') }}</span>
+                  </v-tooltip>
+                  <div v-if="getFileSize('mac-arm64')" class="text-caption text-center mt-1 text-medium-emphasis">
+                    {{ getFileSize('mac-arm64') }}
+                  </div>
+                </v-col>
+                <v-col cols="6">
+                  <v-tooltip location="bottom">
+                    <template #activator="{ props: tooltipProps }">
+                      <v-btn
+                        v-bind="tooltipProps"
+                        :href="getDownloadUrl('mac-x64') || '#'"
+                        :disabled="!getDownloadUrl('mac-x64') && !loading"
+                        :loading="loading"
+                        color="primary"
+                        size="large"
+                        class="download-btn"
+                        block
+                      >
+                        <v-icon start size="small">mdi-download</v-icon>
+                        Intel
+                      </v-btn>
+                    </template>
+                    <span>{{ t('download.platforms.mac.tooltipX64') }}</span>
+                  </v-tooltip>
+                  <div v-if="getFileSize('mac-x64')" class="text-caption text-center mt-1 text-medium-emphasis">
+                    {{ getFileSize('mac-x64') }}
+                  </div>
+                </v-col>
+              </v-row>
+            </div>
+
+            <!-- Regular button for Windows/Linux -->
             <v-btn
-              v-if="platform.available"
-              :href="getDownloadUrl(platform.key as 'windows' | 'linux' | 'mac') || '#'"
-              :disabled="!getDownloadUrl(platform.key as 'windows' | 'linux' | 'mac') && !loading"
+              v-else-if="platform.available"
+              :href="getDownloadUrl(platform.key as 'windows' | 'linux' | 'mac-arm64' | 'mac-x64') || '#'"
+              :disabled="!getDownloadUrl(platform.key as 'windows' | 'linux' | 'mac-arm64' | 'mac-x64') && !loading"
               :loading="loading"
               color="primary"
               size="large"
@@ -283,12 +361,34 @@ onMounted(() => {
         </v-card>
       </div>
 
+      <!-- GitHub Star CTA -->
+      <div
+        v-motion
+        :initial="{ opacity: 0, y: 20 }"
+        :visible-once="{ opacity: 1, y: 0, transition: { delay: 700 } }"
+        class="text-center mt-10"
+      >
+        <p class="text-body-1 text-medium-emphasis mb-3">
+          {{ t('download.starHint') }}
+        </p>
+        <v-btn
+          href="https://github.com/Flo0806/dm-hero"
+          target="_blank"
+          color="warning"
+          variant="tonal"
+          size="large"
+        >
+          <v-icon start>mdi-star</v-icon>
+          {{ t('download.starButton') }}
+        </v-btn>
+      </div>
+
       <!-- All Releases Link -->
       <div
         v-motion
         :initial="{ opacity: 0 }"
-        :visible-once="{ opacity: 1, transition: { delay: 800 } }"
-        class="text-center mt-8"
+        :visible-once="{ opacity: 1, transition: { delay: 900 } }"
+        class="text-center mt-6"
       >
         <v-btn
           variant="text"
@@ -378,5 +478,10 @@ onMounted(() => {
 
 .docker-section :deep(.v-card) {
   border: 1px solid rgba(var(--v-theme-info), 0.2);
+}
+
+.mac-split-btn .v-btn {
+  text-transform: none;
+  font-weight: 600;
 }
 </style>

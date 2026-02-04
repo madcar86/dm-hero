@@ -101,8 +101,10 @@
       },
       "mac": {
         "title": "macOS",
-        "description": "Coming Soon",
-        "button": "Coming Soon"
+        "description": "macOS 11 Big Sur or later",
+        "button": "Download for macOS",
+        "tooltipArm64": "For Macs with M1, M2, M3, M4 chip",
+        "tooltipX64": "For older Macs with Intel processor (i5, i7, i9)"
       },
       "linux": {
         "title": "Linux",
@@ -114,8 +116,11 @@
       "title": "Or run with Docker",
       "description": "For self-hosted deployment"
     },
+    "starHint": "Like DM Hero? A star on GitHub takes just one click but helps me a lot!",
+    "starButton": "Star on GitHub",
     "allReleases": "View all releases on GitHub",
-    "autoUpdateHint": "Since version 1.0.0-rc.6, the installers (Windows .exe, Linux AppImage) support automatic updates. Your database and files remain unchanged."
+    "autoUpdateHint": "Since version 1.0.0-rc.6, the installers (Windows .exe, Linux AppImage, macOS .dmg) support automatic updates. Your database and files remain unchanged.",
+    "discordHint": "Questions, issues, or feature requests? Join our Discord!"
   },
   "testimonials": {
     "title": "What People Are Saying",

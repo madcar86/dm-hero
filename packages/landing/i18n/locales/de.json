@@ -101,8 +101,10 @@
       },
       "mac": {
         "title": "macOS",
-        "description": "Kommt bald",
-        "button": "Kommt bald"
+        "description": "macOS 11 Big Sur oder neuer",
+        "button": "Für macOS herunterladen",
+        "tooltipArm64": "Für Macs mit M1, M2, M3, M4 Chip",
+        "tooltipX64": "Für ältere Macs mit Intel-Prozessor (i5, i7, i9)"
       },
       "linux": {
         "title": "Linux",
@@ -114,8 +116,11 @@
       "title": "Oder mit Docker ausführen",
       "description": "Für Self-Hosted Deployment"
     },
+    "starHint": "Gefällt dir DM Hero? Ein Stern auf GitHub kostet dich nur einen Klick, hilft mir aber enorm!",
+    "starButton": "Stern auf GitHub geben",
     "allReleases": "Alle Releases auf GitHub ansehen",
-    "autoUpdateHint": "Seit Version 1.0.0-rc.6 unterstützen die Installer (Windows .exe, Linux AppImage) automatische Updates. Deine Datenbank und Dateien bleiben unverändert."
+    "autoUpdateHint": "Seit Version 1.0.0-rc.6 unterstützen die Installer (Windows .exe, Linux AppImage, macOS .dmg) automatische Updates. Deine Datenbank und Dateien bleiben unverändert.",
+    "discordHint": "Fragen, Probleme oder Feature-Wünsche? Tritt unserem Discord bei!"
   },
   "testimonials": {
     "title": "Was andere sagen",
