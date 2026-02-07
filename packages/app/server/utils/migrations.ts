@@ -2350,6 +2350,82 @@ export const migrations: Migration[] = [
       console.log('✅ Migration 44: Added is_imported flag to stat_templates')
     },
   },
+  {
+    version: 45,
+    name: 'create_encounter_tables',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS encounters (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          campaign_id INTEGER NOT NULL,
+          session_id INTEGER,
+          name TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'setup',
+          round INTEGER NOT NULL DEFAULT 0,
+          current_turn_index INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          finished_at TEXT,
+          deleted_at TEXT,
+          FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
+          FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE SET NULL
+        )
+      `)
+
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_encounters_campaign_id ON encounters(campaign_id)
+      `)
+
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS encounter_participants (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          encounter_id INTEGER NOT NULL,
+          entity_id INTEGER NOT NULL,
+          display_name TEXT NOT NULL,
+          duplicate_index INTEGER NOT NULL DEFAULT 0,
+          initiative INTEGER,
+          current_hp INTEGER NOT NULL DEFAULT 0,
+          max_hp INTEGER NOT NULL DEFAULT 0,
+          temp_hp INTEGER NOT NULL DEFAULT 0,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          is_ko INTEGER NOT NULL DEFAULT 0,
+          notes TEXT,
+          FOREIGN KEY (encounter_id) REFERENCES encounters(id) ON DELETE CASCADE,
+          FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+        )
+      `)
+
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_encounter_participants_encounter_id ON encounter_participants(encounter_id)
+      `)
+
+      console.log('✅ Migration 45: Created encounters and encounter_participants tables')
+    },
+  },
+  {
+    version: 46,
+    name: 'Create encounter_effects table',
+    up: (db: Database.Database) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS encounter_effects (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          participant_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          icon TEXT,
+          duration_type TEXT NOT NULL DEFAULT 'infinite',
+          duration_rounds INTEGER,
+          remaining_rounds INTEGER,
+          FOREIGN KEY (participant_id) REFERENCES encounter_participants(id) ON DELETE CASCADE
+        )
+      `)
+
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_encounter_effects_participant_id ON encounter_effects(participant_id)
+      `)
+
+      console.log('✅ Migration 46: Created encounter_effects table')
+    },
+  },
 ]
 
 export async function runMigrations(db: Database.Database) {
