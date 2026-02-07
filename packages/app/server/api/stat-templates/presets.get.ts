@@ -1,4 +1,4 @@
-import { STAT_PRESETS } from '../../data/stat-presets'
+import { STAT_PRESETS } from '../../utils/stat-presets'
 
 // List available preset templates with full structure (i18n keys, resolved by client)
 export default defineEventHandler(() => {

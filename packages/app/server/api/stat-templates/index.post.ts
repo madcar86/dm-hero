@@ -1,4 +1,4 @@
-import { getPresetByKey } from '../../data/stat-presets'
+import { getPresetByKey } from '../../utils/stat-presets'
 import type { CreateStatTemplatePayload } from '~~/types/stat-template'
 
 // Create a new stat template.
