@@ -97,7 +97,7 @@
                 <h3 class="text-subtitle-1 font-weight-bold mb-2">
                   {{ $t('factions.description') }}
                 </h3>
-                <p class="text-body-2">{{ faction.description }}</p>
+                <p class="text-body-2" style="white-space: pre-wrap">{{ faction.description }}</p>
               </div>
 
               <!-- Metadata Grid -->
@@ -123,7 +123,7 @@
                         <div class="text-caption text-medium-emphasis">
                           {{ $t('factions.goals') }}
                         </div>
-                        <div class="font-weight-medium">{{ faction.metadata.goals }}</div>
+                        <div class="font-weight-medium" style="white-space: pre-wrap">{{ faction.metadata.goals }}</div>
                       </div>
                     </div>
                   </v-card>
@@ -136,7 +136,7 @@
                         <div class="text-caption text-medium-emphasis">
                           {{ $t('factions.notes') }}
                         </div>
-                        <div class="font-weight-medium">{{ faction.metadata.notes }}</div>
+                        <div class="font-weight-medium" style="white-space: pre-wrap">{{ faction.metadata.notes }}</div>
                       </div>
                     </div>
                   </v-card>
@@ -269,13 +269,13 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  edit: [faction: Faction]
+  'edit': [faction: Faction]
   'preview-image': [imageUrl: string, title: string]
 }>()
 
 const internalShow = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value),
+  set: value => emit('update:modelValue', value),
 })
 
 const activeTab = ref('overview')
@@ -287,19 +287,19 @@ const counts = computed(() => (props.faction ? getCounts(props.faction.id) || pr
 
 // Data refs
 const members = ref<
-  Array<{ id: number; name: string; description: string | null; image_url: string | null }>
+  Array<{ id: number, name: string, description: string | null, image_url: string | null }>
 >([])
 const items = ref<
-  Array<{ id: number; name: string; description: string | null; image_url: string | null }>
+  Array<{ id: number, name: string, description: string | null, image_url: string | null }>
 >([])
 const locations = ref<
-  Array<{ id: number; name: string; description: string | null; image_url: string | null }>
+  Array<{ id: number, name: string, description: string | null, image_url: string | null }>
 >([])
 const loreEntries = ref<
-  Array<{ id: number; name: string; description: string | null; image_url: string | null }>
+  Array<{ id: number, name: string, description: string | null, image_url: string | null }>
 >([])
 const players = ref<
-  Array<{ id: number; name: string; description: string | null; image_url: string | null }>
+  Array<{ id: number, name: string, description: string | null, image_url: string | null }>
 >([])
 const documents = ref<Document[]>([])
 const images = ref<Image[]>([])
@@ -311,8 +311,8 @@ watch(
     if (isVisible && newFactionId) {
       loading.value = true
       try {
-        const [countsData, membersData, itemsData, locationsData, loreData, playersData, documentsData, imagesData] =
-          await Promise.all([
+        const [countsData, membersData, itemsData, locationsData, loreData, playersData, documentsData, imagesData]
+          = await Promise.all([
             $fetch<FactionCounts>(`/api/factions/${newFactionId}/counts`),
             $fetch<typeof members.value>(`/api/entities/${newFactionId}/related/npcs`).catch(() => []),
             $fetch<typeof items.value>(`/api/entities/${newFactionId}/related/items`).catch(() => []),
@@ -338,9 +338,11 @@ watch(
         players.value = playersData
         documents.value = documentsData
         images.value = imagesData
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to load faction data:', error)
-      } finally {
+      }
+      finally {
         loading.value = false
       }
     }
