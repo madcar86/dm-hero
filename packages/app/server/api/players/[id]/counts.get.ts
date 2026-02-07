@@ -22,6 +22,7 @@ export default defineEventHandler((event) => {
     SELECT COUNT(*) as count
     FROM entity_documents
     WHERE entity_id = ?
+      AND (document_type IS NULL OR document_type != 'character_sheet')
   `,
     )
     .get(Number(playerId)) as { count: number }
@@ -231,7 +232,12 @@ export default defineEventHandler((event) => {
     ORDER BY g.name
   `,
     )
-    .all(Number(playerId)) as Array<{ id: number; name: string; color: string | null; icon: string | null }>
+    .all(Number(playerId)) as Array<{ id: number, name: string, color: string | null, icon: string | null }>
+
+  // Check if entity has stats assigned
+  const statsResult = db
+    .prepare('SELECT COUNT(*) as count FROM entity_stats WHERE entity_id = ?')
+    .get(Number(playerId)) as { count: number }
 
   return {
     characters: npcsCount,
@@ -242,6 +248,7 @@ export default defineEventHandler((event) => {
     sessions: sessionsCount.count,
     documents: documentsCount.count,
     images: imagesCount.count,
+    hasStats: statsResult.count > 0,
     groups,
   }
 })
